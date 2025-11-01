@@ -1,0 +1,14 @@
+.*
+!.gitignore
+!.gitattributes
+!.github
+!.editorconfig
+!.*.yml
+!.env.example
+**/target/
+*.iml
+**/logs/*.log
+*.db
+*.csv
+*.log
+!.helmignore
