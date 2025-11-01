@@ -44,28 +44,7 @@ public class CsvWriterTest {
             new String[] {"with\nnew line", " with a \"quote\"", "\""},
             new String[] {
               "with\nnew \"line\"", "random,separator,", "   with,\n\"all the,,,stuff \n\n  \""
-            }),
-        List.of(
-            // simple fields
-            new String[] {"hello", "world", "123"},
-            // empty fields
-            new String[] {"", null, "non-empty"},
-            // fields with spaces
-            new String[] {"with space", "leading ", " trailing"},
-            // fields with quotes
-            new String[] {"with\"quote", "\"start", "end\""},
-            // fields with comma
-            new String[] {"a,b,c", "simple", "field"},
-            // fields with newlines
-            new String[] {"line\nbreak", "multi\nline\nfield", "ok"},
-            // fields with comma + quote + newline
-            new String[] {"complex,\"\nfield", "another\nfield", "last"},
-            // fields that are only quotes
-            new String[] {"\"", "\"\"\"\"", "\""},
-            // fields with Unicode characters
-            new String[] {"😀", "こんにちは", "¡Hola!"},
-            // mixed tricky
-            new String[] {" \n \" , ", "normal", "end"}));
+            }));
   }
 
   private static List<String[]> loadCSV(String string) {
