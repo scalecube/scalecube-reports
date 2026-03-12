@@ -1,8 +1,9 @@
 package io.scalecube.reports.csv;
 
 import static java.time.format.DateTimeFormatter.ofPattern;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.opencsv.CSVReader;
 import io.scalecube.reports.csv.CsvReport.Builder;
@@ -46,10 +47,10 @@ public class CsvGeneratorTest {
   void generateReportFailure(TestDataFailure data) {
     StepVerifier.create(Mono.fromRunnable(data.executor))
         .expectErrorSatisfies(
-            throwable ->
-                assertThat(throwable)
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(data.errorMessage))
+            throwable -> {
+              assertInstanceOf(IllegalArgumentException.class, throwable);
+              assertEquals(data.errorMessage, throwable.getMessage());
+            })
         .verify();
   }
 
@@ -282,7 +283,7 @@ public class CsvGeneratorTest {
   private void assertReport(
       List<String> expectedColumns, List<String[]> expectedRows, File reportFile) {
 
-    assertThat(reportFile).isNotNull();
+    assertNotNull(reportFile);
     List<String[]> reportData = loadReportData(reportFile.toPath());
 
     // Check column names
