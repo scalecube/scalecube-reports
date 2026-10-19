@@ -3,6 +3,7 @@ package io.scalecube.reports.csv;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -21,28 +22,43 @@ public class CsvGenerator {
 
   public static <T> File generateAsFile(
       Consumer<CsvReport.Builder<T>> builder, Stream<T> dataSource, String baseName) {
-    final CsvReport.Builder<T> reportBuilder = new CsvReport.Builder<>();
-    builder.accept(reportBuilder);
-    final var reportDefinition = reportBuilder.build();
+    File reportFile = null;
+    try (Stream<T> rows = dataSource) {
+      final CsvReport.Builder<T> reportBuilder = new CsvReport.Builder<>();
+      builder.accept(reportBuilder);
+      final var reportDefinition = reportBuilder.build();
 
-    validateReport(reportDefinition);
+      validateReport(reportDefinition);
 
-    try {
-      File reportFile = createFile(baseName + "-", ".csv");
+      reportFile = createFile(baseName + "-", ".csv");
 
       try (var writer = new FileWriter(reportFile);
-          var csvWriter = new CsvWriter(writer);
-          Stream<T> rows = dataSource) {
+          var csvWriter = new CsvWriter(writer)) {
 
         csvWriter.writeNext(reportDefinition.columnsHeader());
         if (rows != null) {
           rows.map(reportDefinition::mapRow).forEach(csvWriter::writeNext);
         }
-
-        return reportFile;
       }
+
+      return reportFile;
     } catch (IOException e) {
+      deleteFile(reportFile, e);
       throw new RuntimeException(e);
+    } catch (RuntimeException | Error e) {
+      deleteFile(reportFile, e);
+      throw e;
+    }
+  }
+
+  private static void deleteFile(File file, Throwable cause) {
+    if (file == null) {
+      return;
+    }
+    try {
+      Files.deleteIfExists(file.toPath());
+    } catch (IOException e) {
+      cause.addSuppressed(e);
     }
   }
 

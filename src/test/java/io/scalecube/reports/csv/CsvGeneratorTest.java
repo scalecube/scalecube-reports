@@ -4,10 +4,14 @@ import static java.time.format.DateTimeFormatter.ofPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.opencsv.CSVReader;
 import io.scalecube.reports.csv.CsvReport.Builder;
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,8 +21,11 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
@@ -52,6 +59,49 @@ public class CsvGeneratorTest {
               assertEquals(data.errorMessage, throwable.getMessage());
             })
         .verify();
+  }
+
+  @Test
+  void closeDataSourceWhenFileCreationFails() {
+    final var closed = new AtomicBoolean();
+    final Stream<Item> dataSource = Stream.<Item>empty().onClose(() -> closed.set(true));
+
+    assertThrows(
+        RuntimeException.class,
+        () ->
+            CsvGenerator.generateAsFile(
+                builder -> builder.addColumn("Item ID", Item::id), dataSource, "../outside"));
+
+    assertTrue(closed.get(), "dataSource closed");
+  }
+
+  @Test
+  void deleteFileWhenDataSourceFailsMidWrite() throws IOException {
+    final var baseName = "report-" + UUID.randomUUID();
+    final var failure = new IllegalStateException("data source failed");
+    final Stream<Item> dataSource =
+        Stream.of(1, 2)
+            .map(
+                id -> {
+                  if (id == 2) {
+                    throw failure;
+                  }
+                  return new Item(id, null, null, null, null, null, null, null);
+                });
+
+    final var thrown =
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                CsvGenerator.generateAsFile(
+                    builder -> builder.addColumn("Item ID", Item::id), dataSource, baseName));
+
+    assertSame(failure, thrown);
+    try (var files = Files.list(Path.of(System.getProperty("java.io.tmpdir")))) {
+      assertEquals(
+          List.of(),
+          files.filter(file -> file.getFileName().toString().startsWith(baseName)).toList());
+    }
   }
 
   private static Stream<TestData> generateReportSuccessfullyMethodSource() {
