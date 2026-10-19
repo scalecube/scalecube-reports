@@ -3,7 +3,6 @@ package io.scalecube.reports.csv;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -43,22 +42,17 @@ public class CsvGenerator {
 
       return reportFile;
     } catch (IOException e) {
-      deleteFile(reportFile, e);
+      deleteFile(reportFile);
       throw new RuntimeException(e);
     } catch (RuntimeException | Error e) {
-      deleteFile(reportFile, e);
+      deleteFile(reportFile);
       throw e;
     }
   }
 
-  private static void deleteFile(File file, Throwable cause) {
-    if (file == null) {
-      return;
-    }
-    try {
-      Files.deleteIfExists(file.toPath());
-    } catch (IOException e) {
-      cause.addSuppressed(e);
+  private static void deleteFile(File file) {
+    if (file != null) {
+      file.delete();
     }
   }
 
